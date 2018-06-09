@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.db import IntegrityError
+from polyaxon_schemas.utils import to_list
 
 from db.models.build_jobs import BuildJob
 from db.models.experiment_jobs import ExperimentJob
@@ -139,7 +140,7 @@ def events_handle_logs_experiment_job(experiment_name,
     if task_type and task_idx:
         log_line = '{}.{} -- {}'.format(task_type, int(task_idx) + 1, log_line)
 
-    safe_log_experiment_job(experiment_name=experiment_name, log_line=log_line)
+    safe_log_experiment_job(experiment_name=experiment_name, log_lines=log_line)
 
 
 @celery_app.task(name=EventsCeleryTasks.EVENTS_HANDLE_LOGS_JOB)
@@ -148,14 +149,15 @@ def events_handle_logs_job(job_uuid, job_name, log_line):
         return
 
     _logger.debug('handling log event for %s', job_name)
-    safe_log_job(job_name=job_name, log_line=log_line)
+    safe_log_job(job_name=job_name, log_lines=log_line)
 
 
 @celery_app.task(name=EventsCeleryTasks.EVENTS_HANDLE_LOGS_BUILD_JOB)
-def events_handle_logs_build_job(job_uuid, job_name, log_line):
+def events_handle_logs_build_job(job_uuid, job_name, log_lines):
     if not BuildJob.objects.filter(uuid=job_uuid).exists():
         return
 
     _logger.debug('handling log event for %s', job_name)
-    _logger.debug('handling log event for %s', job_name)
-    safe_log_job(job_name=job_name, log_line=log_line)
+    log_lines = to_list(log_lines)
+
+    safe_log_job(job_name=job_name, log_lines=log_lines)
